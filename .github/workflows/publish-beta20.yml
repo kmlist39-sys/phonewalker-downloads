@@ -1,0 +1,43 @@
+name: Publish verified PhoneWalker beta20
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-beta20.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: phonewalker-beta20-release
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Download and verify tested installer
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --output PhoneWalkerSetup-1.0.0-beta.20.exe 'https://bckndtggdhayvyxlqyad.supabase.co/functions/v1/phonewalker-release?version=1.0.0-beta.20'
+          echo '6d3c1ae01f02e95ac1b41f354f81e6e75103fd631438252f142599b490390728  PhoneWalkerSetup-1.0.0-beta.20.exe' > SHA256SUMS.txt
+          sha256sum --check SHA256SUMS.txt
+      - name: Publish installer
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: kmlist39-sys/phonewalker-downloads
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > notes.txt <<'EOF'
+          폰워커 메모 1.0.0-beta.20
+          
+          구글 캘린더 연결: 컨트롤 박스 → 설정 → 구글 캘린더 연결에서 본인 계정을 선택하세요.
+          오늘 일정의 제목·내용·장소를 표시하며 계정 변경과 연결 해제를 지원합니다.
+          기존 메모·위치·설정은 보존됩니다.
+          Google 공식 검증 전이므로 최초 연결 시 확인되지 않은 앱 안내가 표시될 수 있습니다.
+          
+          이전 개선: 즐겨찾기 추가, 프린트 서식 확대와 LG 결합별 선택, 자석 및 위치 복원 개선, 액자, 보안 메모.
+          beta.18 이상은 폰워커를 완전히 종료하고 다시 실행하면 자동 업데이트됩니다.
+          설치 파일과 SHA256SUMS.txt가 아래에 있습니다.
+          EOF
+          gh release create v1.0.0-beta.20 PhoneWalkerSetup-1.0.0-beta.20.exe SHA256SUMS.txt --target main --title '폰워커 메모 1.0.0-beta.20' --notes-file notes.txt --prerelease
